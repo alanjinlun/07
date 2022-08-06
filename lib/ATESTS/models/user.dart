@@ -7,6 +7,7 @@ class User {
   final String uid;
   final String? photoUrl;
   final String username;
+  final String usernameLower;
   final String country;
   final String isFT;
   final String bio;
@@ -21,6 +22,7 @@ class User {
     required this.uid,
     required this.photoUrl,
     required this.username,
+    required this.usernameLower,
     required this.country,
     required this.isFT,
     required this.bio,
@@ -33,6 +35,7 @@ class User {
 
   Map<String, dynamic> toJson() => {
         "username": username,
+        "usernameLower": usernameLower,
         "uid": uid,
         "email": email,
         // "bio": bio,
@@ -51,11 +54,12 @@ class User {
 
     return User(
       username: snapshot['username'],
+      usernameLower: snap['usernameLower'],
       uid: snapshot['uid'],
       photoUrl: snapshot['photoUrl'],
       email: snapshot['email'],
       country: snapshot['country'],
-      isFT: snapshot['isFT'],
+      isFT: snapshot['isFT'] ?? "",
       bio: snapshot['bio'],
       dateCreated: snapshot['dateCreated'],
       profileFlag: snapshot['profileFlag'],

@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:aft/ATESTS/models/poll.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -18,6 +19,13 @@ class AuthMethods {
     DocumentSnapshot snap =
         await _firestore.collection('users').doc(currentUser.uid).get();
 
+    return model.User.fromSnap(snap);
+  }
+
+  Future<model.User> getUserProfileDetails(uid) async {
+    DocumentSnapshot snap =
+        await _firestore.collection('users').doc(uid).get();
+    
     return model.User.fromSnap(snap);
   }
 
@@ -57,6 +65,7 @@ class AuthMethods {
 
         model.User user = model.User(
             username: username,
+            usernameLower: username.toLowerCase(),
             uid: cred.user!.uid,
             // photoUrl: photoUrl,
             dateCreated: DateTime.now(),
@@ -158,7 +167,10 @@ class AuthMethods {
     try {
       User currentUser = _auth.currentUser!;
       await _firestore.collection('users').doc(currentUser.uid).update(
-        {'username': username},
+        {
+          'username': username,
+          'usernameLower': username.toLowerCase(),
+        },
       );
     } catch (err) {}
   }
@@ -185,15 +197,22 @@ class AuthMethods {
     } catch (err) {}
   }
 
-  Future<void> changeProfilePic({
-    required Uint8List? profilePicFile,
+  Future<String> changeProfilePic({
+    required String? profilePhotoUrl,
   }) async {
+    String res = "Some error ocurred";
     try {
       User currentUser = _auth.currentUser!;
       await _firestore.collection('users').doc(currentUser.uid).update(
-        {'photoUrl': profilePicFile},
+        {'photoUrl': profilePhotoUrl},
       );
-    } catch (err) {}
+      res = "success";
+    } catch (e) {
+      print(
+        e.toString(),
+      );
+    }
+    return res;
   }
 
   Future<String> changeEmail({
@@ -227,7 +246,12 @@ class AuthMethods {
 
   Future<void> deleteUser(String uid) async {
     try {
+      final user = FirebaseAuth.instance.currentUser;
       await _firestore.collection('users').doc(uid).delete();
+
+      if (user != null) {
+        await user.delete();
+      }
     } catch (err) {
       print(err.toString());
     }

@@ -53,6 +53,8 @@ dependencies:
   youtube_parser: ^2.0.0
   youtube_player_flutter: ^8.1.0
   youtube_player_iframe: ^2.3.0
+  rxdart: ^0.27.5
+
 
 dev_dependencies:
   flutter_lints: ^2.0.0

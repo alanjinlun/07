@@ -564,7 +564,7 @@ class _PostCardTestState extends State<PostCardTest> {
                                     ),
                                   ),
                                 )
-                              : _post.selected == 3
+                              : (_post.selected == 2 || _post.selected == 3)
                                   ? LayoutBuilder(
                                       builder: (context, constraints) {
                                       if (kIsWeb &&

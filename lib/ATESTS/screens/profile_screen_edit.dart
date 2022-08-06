@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../methods/auth_methods.dart';
+import '../methods/storage_methods.dart';
 import '../models/user.dart';
 import '../other/utils.dart.dart';
 import '../provider/user_provider.dart';
@@ -30,7 +31,7 @@ class _EditProfileState extends State<EditProfile> {
   bool username = false;
   bool valueFlag = false;
   var selectFlag = false;
-  Uint8List? _image;
+  String? _image;
   User? user;
 
   // UI
@@ -52,9 +53,27 @@ class _EditProfileState extends State<EditProfile> {
 
   void selectImage() async {
     Uint8List im = await pickImage(ImageSource.gallery);
+    
     setState(() {
-      _image = im;
+      isLoading = true;
     });
+    String photoUrl = await StorageMethods()
+            .uploadImageToStorage('profilePics', im, false);
+    if (photoUrl != null) {
+      await AuthMethods()
+          .changeProfilePic(
+              profilePhotoUrl: photoUrl);
+      UserProvider
+          userProvider =
+          Provider.of(context,
+              listen: false);
+      await userProvider
+          .refreshUser();
+    }
+    setState(() {
+      isLoading = false;
+    });
+      
   }
 
   Future<void> getValueFlag() async {
@@ -72,6 +91,8 @@ class _EditProfileState extends State<EditProfile> {
   @override
   Widget build(BuildContext context) {
     user = Provider.of<UserProvider>(context).getUser;
+    _image = user!.photoUrl;
+    print(_image);
     bool isSignedIn = user != null;
 
     return Scaffold(
@@ -100,10 +121,10 @@ class _EditProfileState extends State<EditProfile> {
                                 const EdgeInsets.only(bottom: 25.0, left: 8),
                             child: Stack(
                               children: [
-                                _image != null
+                                _image != null && _image!.isNotEmpty
                                     ? CircleAvatar(
                                         radius: 64,
-                                        backgroundImage: MemoryImage(_image!),
+                                        backgroundImage: NetworkImage(_image!),
                                       )
                                     : CircleAvatar(
                                         radius: 64,

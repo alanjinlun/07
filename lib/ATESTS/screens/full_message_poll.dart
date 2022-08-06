@@ -92,6 +92,29 @@ class _FullMessagePollState extends State<FullMessagePoll> {
     CommentSort(label: 'Most Recent', key: 'datePublished', value: true),
   ];
 
+  reinitializeCommentFilter(Poll poll) {
+    print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    commentFilters.clear();
+    commentFilters.add(CommentFilter(
+      label: 'All',
+      key: 'commentId',
+      value: 'all',
+    ));
+    for (int i = 1; i < 11; i++) {
+      String option = poll.toJson()["option$i"];
+      if (option.isNotEmpty) {
+        commentFilters.add(CommentFilter(
+          label: option,
+          key: "vote$i",
+          value: 'uid',
+        ));
+      }
+    }
+    commentFilters.forEach((element) {
+      print(element.key);
+    });
+  }
+
   List<CommentFilter> commentFilters = [
     CommentFilter(
       label: 'All',
@@ -266,6 +289,7 @@ class _FullMessagePollState extends State<FullMessagePoll> {
   @override
   void initState() {
     _poll = widget.poll;
+    reinitializeCommentFilter(_poll);
     _selectedCommentSort = commentSorts.first;
     _selectedCommentFilter = commentFilters.first;
     placement = '#${(widget.indexPlacement + 1).toString()}';
@@ -289,9 +313,8 @@ class _FullMessagePollState extends State<FullMessagePoll> {
   @override
   Widget build(BuildContext context) {
     _poll = widget.poll;
-
-    print('INSIDE FULL MESSAGE BUILD');
-    print('_post.toJson(): ${_poll.toJson()}');
+    // print('INSIDE FULL MESSAGE BUILD');
+    // print('_poll.toJson(): ${_poll.toJson()}');
 
     final User? user = Provider.of<UserProvider>(context).getUser;
     _isPollEnded = (_poll.endDate as Timestamp)
@@ -300,20 +323,33 @@ class _FullMessagePollState extends State<FullMessagePoll> {
           DateTime.now(),
         )
         .isNegative;
-
-    print("_selectedCommentFilter.key: ${_selectedCommentFilter.key}");
-    print("_post.toJson(): ${_poll.toJson()}");
-    print(
-        "_post.toJson()[_selectedCommentFilter.key]: ${_poll.toJson()[_selectedCommentFilter.key]}");
+    // print("_selectedCommentFilter.key: ${_selectedCommentFilter.key}");
+    // print("_poll.toJson(): ${_poll.toJson()}");
+    // print(
+    //     "_poll.toJson()[_selectedCommentFilter.key]: ${_poll.toJson()[_selectedCommentFilter.key]}");
 
     return StreamBuilder(
         stream: FirebaseFirestore.instance
             .collection('polls')
-            .doc(_poll.pollId)
+            .doc(widget.poll.pollId)
             .snapshots(),
         builder: (context,
             AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot) {
+          // if (snapshot.connectionState == ConnectionState.waiting) {
+          //   return const Center(
+          //     child: CircularProgressIndicator(),
+          //   );
+          // }
+
           _poll = snapshot.data != null ? Poll.fromSnap(snapshot.data!) : _poll;
+
+          // _isPollEnded = (_poll.endDate as Timestamp)
+          //   .toDate()
+          //   .difference(
+          //     DateTime.now(),
+          //   )
+          //   .isNegative;
+            
           return Container(
             color: Colors.white,
             child: SafeArea(
@@ -419,18 +455,7 @@ class _FullMessagePollState extends State<FullMessagePoll> {
                     ),
                   ],
                 ),
-                body: StreamBuilder(
-                  stream: FirebaseFirestore.instance
-                      .collection('polls')
-                      .doc(_poll.pollId)
-                      .snapshots(),
-                  builder: (context,
-                      AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>>
-                          snapshot) {
-                    _poll = snapshot.data != null
-                        ? Poll.fromSnap(snapshot.data!)
-                        : _poll;
-                    return SingleChildScrollView(
+                body: SingleChildScrollView(
                       child: Column(
                         children: [
                           Padding(
@@ -1039,7 +1064,7 @@ class _FullMessagePollState extends State<FullMessagePoll> {
                                                                                           child: Row(
                                                                                             children: [
                                                                                               Text(
-                                                                                                '${commentFilter.label}',
+                                                                                                commentFilter.label,
                                                                                                 style: TextStyle(color: _selectedCommentFilter == commentFilter ? Colors.white : Color.fromARGB(255, 111, 111, 111)),
                                                                                               ),
                                                                                               commentFilter.icon ??
@@ -1295,9 +1320,7 @@ class _FullMessagePollState extends State<FullMessagePoll> {
                           ),
                         ],
                       ),
-                    );
-                  },
-                ),
+                    ),
               ),
             ),
           );

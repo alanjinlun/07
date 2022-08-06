@@ -24,6 +24,7 @@ class Post {
   List<String> plus;
   List<String> neutral;
   List<String> minus;
+  final List<String> allVotesUIDs;
   final int? selected;
   final datePublished;
   StreamController<Post>? updatingStream;
@@ -45,6 +46,7 @@ class Post {
       required this.neutral,
       required this.minus,
       required this.score,
+      required this.allVotesUIDs,
       this.updatingStream}) {
     if (updatingStream != null) {
       updatingStream!.stream
@@ -75,6 +77,7 @@ class Post {
         "neutral": neutral,
         "minus": minus,
         "score": score,
+        "allVotesUIDs": allVotesUIDs,
       };
 
   static Post fromSnap(DocumentSnapshot snap) {
@@ -142,6 +145,7 @@ class Post {
         plus: (snapshot['plus'] ?? []).cast<String>(),
         neutral: (snapshot['neutral'] ?? []).cast<String>(),
         minus: (snapshot['minus'] ?? []).cast<String>(),
+        allVotesUIDs: (snapshot['allVotesUIDs'] ?? []).cast<String>(),
         selected: snapshot['selected'],
         datePublished: snapshot['datePublished'],
         // selected: snapshot['selected'],

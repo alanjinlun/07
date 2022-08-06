@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'package:aft/ATESTS/screens/report_user_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -74,6 +75,101 @@ class _FullMessageState extends State<FullMessage> {
   int commentLen = 0;
   String placement = '';
   bool filter = false;
+
+  List<dynamic> commentList = [];
+  StreamSubscription? loadDataStream;
+
+  initList() async {
+    if (loadDataStream != null) {
+      loadDataStream!.cancel();
+      commentList = [];
+    }
+    if (_selectedCommentFilter.value == 'all') {
+      loadDataStream = FirebaseFirestore.instance
+        .collection('posts')
+        .doc(_post.postId)
+        .collection('comments')
+
+        // Sort
+        .orderBy(_selectedCommentSort.key,
+            descending:
+                _selectedCommentSort.value)
+        .snapshots().listen((event) {
+          if (commentList.isEmpty) {
+            event.docChanges.forEach((change) {
+              commentList.add(change.doc.data()!);
+            });
+          } else {
+            for (var change in event.docChanges) {
+              switch (change.type) {
+                case DocumentChangeType.added:
+                  commentList.add({
+                    ...change.doc.data()!,
+                  }); // we are adding to a local list when the element is added in firebase collection
+                  break; //the Post element we will send on pair with updatingStream, because a Post constructor makes a listener on a stream.
+                case DocumentChangeType.modified:
+                  int i = commentList.indexWhere((element) => element["commentId"] == change.doc.data()!["commentId"]);
+                  commentList[i] = change.doc;
+                  break;
+                case DocumentChangeType.removed:
+                  commentList.remove({
+                    ...change.doc.data()!
+                  }); // we are removing a Post object from the local list.
+                  break;
+              }
+            }
+          }
+          setState(() {
+          });
+        });
+    } else {
+      loadDataStream = FirebaseFirestore.instance
+            .collection('posts')
+            .doc(_post.postId)
+            .collection('comments')
+            .where(_selectedCommentFilter.value, whereIn: (_post
+                  .toJson()[
+                      _selectedCommentFilter
+                          .key]
+                  .isNotEmpty
+              ? _post.toJson()[
+                  _selectedCommentFilter
+                      .key]
+              : ['placeholder_uid']))
+          .orderBy(_selectedCommentSort.key,
+            descending:
+                _selectedCommentSort.value)
+          .snapshots()
+          .listen((event) {
+            if (commentList.isEmpty) {
+              event.docChanges.forEach((change) {
+                commentList.add(change.doc.data()!);
+              });
+            } else {
+              for (var change in event.docChanges) {
+                switch (change.type) {
+                  case DocumentChangeType.added:
+                    commentList.add({
+                      ...change.doc.data()!,
+                    }); // we are adding to a local list when the element is added in firebase collection
+                    break; //the Post element we will send on pair with updatingStream, because a Post constructor makes a listener on a stream.
+                  case DocumentChangeType.modified:
+                    int i = commentList.indexWhere((element) => element["commentId"] == change.doc.data()!["commentId"]);
+                    commentList[i] = change.doc.data()!;
+                    break;
+                  case DocumentChangeType.removed:
+                    commentList.remove({
+                      ...change.doc.data()!
+                    }); // we are removing a Post object from the local list.
+                    break;
+                }
+              }
+            }
+            setState(() {
+            });
+      });
+    }
+  }
 
   List<CommentSort> commentSorts = [
     CommentSort(label: 'Most Popular', key: 'likeCount', value: true),
@@ -210,6 +306,7 @@ class _FullMessageState extends State<FullMessage> {
     placement = '#${(widget.indexPlacement + 1).toString()}';
 
     currentReplyCommentId = null;
+    initList();
     super.initState();
     controller = YoutubePlayerController(
       initialVideoId: _post.videoUrl,
@@ -238,6 +335,9 @@ class _FullMessageState extends State<FullMessage> {
     controller.close();
     super.dispose();
     _commentController.dispose();
+    if (loadDataStream != null) {
+      loadDataStream!.cancel();
+    }
   }
 
   @override
@@ -967,67 +1067,64 @@ class _FullMessageState extends State<FullMessage> {
                                           top: 16,
                                           bottom: 4,
                                         ),
-                                        child: Container(
-                                          // height: 30,
-                                          child: StreamBuilder(
-                                            stream: _selectedCommentFilter
-                                                        .value ==
-                                                    'all'
-                                                ? FirebaseFirestore.instance
-                                                    .collection('posts')
-                                                    .doc(_post.postId)
-                                                    .collection('comments')
+                                        child: StreamBuilder(
+                                          stream: _selectedCommentFilter
+                                                      .value ==
+                                                  'all'
+                                              ? FirebaseFirestore.instance
+                                                  .collection('posts')
+                                                  .doc(_post.postId)
+                                                  .collection('comments')
 
-                                                    // Sort
-                                                    .orderBy(
-                                                        _selectedCommentSort
-                                                            .key,
-                                                        descending:
-                                                            _selectedCommentSort
-                                                                .value)
-                                                    .snapshots()
-                                                : FirebaseFirestore.instance
-                                                    .collection('posts')
-                                                    .doc(_post.postId)
-                                                    .collection('comments')
-                                                    .orderBy(
-                                                        _selectedCommentSort
-                                                            .key,
-                                                        descending:
-                                                            _selectedCommentSort
-                                                                .value)
-                                                    // Filter
-                                                    .where(
-                                                        _selectedCommentFilter
-                                                            .value,
-                                                        whereIn: (_post
-                                                                .toJson()[
-                                                                    _selectedCommentFilter
-                                                                        .key]
-                                                                .isNotEmpty
-                                                            ? _post.toJson()[
-                                                                _selectedCommentFilter
-                                                                    .key]
-                                                            : [
-                                                                'placeholder_uid'
-                                                              ]))
+                                                  // Sort
+                                                  .orderBy(
+                                                      _selectedCommentSort
+                                                          .key,
+                                                      descending:
+                                                          _selectedCommentSort
+                                                              .value)
+                                                  .snapshots()
+                                              : FirebaseFirestore.instance
+                                                  .collection('posts')
+                                                  .doc(_post.postId)
+                                                  .collection('comments')
+                                                  .orderBy(
+                                                      _selectedCommentSort
+                                                          .key,
+                                                      descending:
+                                                          _selectedCommentSort
+                                                              .value)
+                                                  // Filter
+                                                  .where(
+                                                      _selectedCommentFilter
+                                                          .value,
+                                                      whereIn: (_post
+                                                              .toJson()[
+                                                                  _selectedCommentFilter
+                                                                      .key]
+                                                              .isNotEmpty
+                                                          ? _post.toJson()[
+                                                              _selectedCommentFilter
+                                                                  .key]
+                                                          : [
+                                                              'placeholder_uid'
+                                                            ]))
 
-                                                    // Sort
-                                                    // .orderBy(_selectedCommentSort.key,
-                                                    //     descending:
-                                                    //         _selectedCommentSort
-                                                    //             .value)
-                                                    .snapshots(),
-                                            builder: (content, snapshot) {
-                                              return Text(
-                                                'Comments (${(snapshot.data as dynamic)?.docs.length ?? 0})',
-                                                style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 18,
-                                                    letterSpacing: 0.8),
-                                              );
-                                            },
-                                          ),
+                                                  // Sort
+                                                  // .orderBy(_selectedCommentSort.key,
+                                                  //     descending:
+                                                  //         _selectedCommentSort
+                                                  //             .value)
+                                                  .snapshots(),
+                                          builder: (content, snapshot) {
+                                            return Text(
+                                              'Comments (${(snapshot.data as dynamic)?.docs.length ?? 0})',
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 18,
+                                                  letterSpacing: 0.8),
+                                            );
+                                          },
                                         ),
                                       ),
                                       InkWell(
@@ -1157,6 +1254,7 @@ class _FullMessageState extends State<FullMessage> {
                                                                     () {
                                                                       _selectedCommentSort =
                                                                           commentSort;
+                                                                      initList();
                                                                     },
                                                                   ),
                                                                 );
@@ -1273,6 +1371,7 @@ class _FullMessageState extends State<FullMessage> {
                                                                               setState(
                                                                             () {
                                                                               _selectedCommentFilter = commentFilter;
+                                                                              initList();
                                                                             },
                                                                           ),
                                                                         );
@@ -1397,78 +1496,90 @@ class _FullMessageState extends State<FullMessage> {
                                       ),
                                     ],
                                   ),
-                                  StreamBuilder(
-                                    stream: _selectedCommentFilter.value ==
-                                            'all'
-                                        ? FirebaseFirestore.instance
-                                            .collection('posts')
-                                            .doc(_post.postId)
-                                            .collection('comments')
-
-                                            // Sort
-                                            .orderBy(_selectedCommentSort.key,
-                                                descending:
-                                                    _selectedCommentSort.value)
-                                            .snapshots()
-                                        : FirebaseFirestore.instance
-                                            .collection('posts')
-                                            .doc(_post.postId)
-                                            .collection('comments')
-
-                                            // Filter
-                                            .where(_selectedCommentFilter.value,
-                                                whereIn: (_post
-                                                        .toJson()[
-                                                            _selectedCommentFilter
-                                                                .key]
-                                                        .isNotEmpty
-                                                    ? _post.toJson()[
-                                                        _selectedCommentFilter
-                                                            .key]
-                                                    : ['placeholder_uid']))
-
-                                            // Sort
-                                            .orderBy(_selectedCommentSort.key,
-                                                descending:
-                                                    _selectedCommentSort.value)
-                                            .snapshots(),
-                                    builder: (content, snapshot) {
-                                      if (snapshot.connectionState ==
-                                          ConnectionState.waiting) {
-                                        return widget.post.comments == null
-                                            ? const Padding(
-                                                padding: EdgeInsets.all(8.0),
-                                                child: Center(
-                                                  child:
-                                                      CircularProgressIndicator(),
-                                                ),
-                                              )
-                                            : CommentList(
-                                                commentSnaps:
-                                                    (widget.post.comments
-                                                                as dynamic)
-                                                            ?.docs ??
-                                                        [],
-                                                post: widget.post,
-                                                parentSetState: () {
-                                                  setState(() {});
-                                                },
-                                              );
-                                      }
-                                      widget.post.comments =
-                                          (snapshot.data as dynamic);
-
-                                      return CommentList(
-                                        commentSnaps:
-                                            (snapshot.data as dynamic)?.docs ??
-                                                [],
-                                        post: _post,
-                                        parentSetState: () {
-                                          setState(() {});
-                                        },
-                                      );
+                                  CommentList(
+                                    commentSnaps:
+                                        commentList,
+                                    post: _post,
+                                    parentSetState: (deleteComment) {
+                                      setState(() {
+                                        if (deleteComment != null && deleteComment) {
+                                          initList();
+                                        }
+                                      });
                                     },
-                                  ),
+                                  )
+                                  // StreamBuilder(
+                                  //   stream: _selectedCommentFilter.value ==
+                                  //           'all'
+                                  //       ? FirebaseFirestore.instance
+                                  //           .collection('posts')
+                                  //           .doc(_post.postId)
+                                  //           .collection('comments')
+
+                                  //           // Sort
+                                  //           .orderBy(_selectedCommentSort.key,
+                                  //               descending:
+                                  //                   _selectedCommentSort.value)
+                                  //           .snapshots()
+                                  //       : FirebaseFirestore.instance
+                                  //           .collection('posts')
+                                  //           .doc(_post.postId)
+                                  //           .collection('comments')
+
+                                  //           // Filter
+                                  //           .where(_selectedCommentFilter.value,
+                                  //               whereIn: (_post
+                                  //                       .toJson()[
+                                  //                           _selectedCommentFilter
+                                  //                               .key]
+                                  //                       .isNotEmpty
+                                  //                   ? _post.toJson()[
+                                  //                       _selectedCommentFilter
+                                  //                           .key]
+                                  //                   : ['placeholder_uid']))
+
+                                  //           // Sort
+                                  //           .orderBy(_selectedCommentSort.key,
+                                  //               descending:
+                                  //                   _selectedCommentSort.value)
+                                  //           .snapshots(),
+                                  //   builder: (content, snapshot) {
+                                  //     if (snapshot.connectionState ==
+                                  //         ConnectionState.waiting) {
+                                  //       return widget.post.comments == null
+                                  //           ? const Padding(
+                                  //               padding: EdgeInsets.all(8.0),
+                                  //               child: Center(
+                                  //                 child:
+                                  //                     CircularProgressIndicator(),
+                                  //               ),
+                                  //             )
+                                  //           : CommentList(
+                                  //               commentSnaps:
+                                  //                   (widget.post.comments
+                                  //                               as dynamic)
+                                  //                           ?.docs ??
+                                  //                       [],
+                                  //               post: widget.post,
+                                  //               parentSetState: () {
+                                  //                 setState(() {});
+                                  //               },
+                                  //             );
+                                  //     }
+                                  //     widget.post.comments =
+                                  //         (snapshot.data as dynamic);
+
+                                  //     return CommentList(
+                                  //       commentSnaps:
+                                  //           (snapshot.data as dynamic)?.docs ??
+                                  //               [],
+                                  //       post: _post,
+                                  //       parentSetState: () {
+                                  //         setState(() {});
+                                  //       },
+                                  //     );
+                                  //   },
+                                  // ),
                                 ],
                               ),
                             ),
@@ -1517,7 +1628,7 @@ class CommentList extends StatelessWidget {
             physics: ScrollPhysics(),
             itemCount: commentSnaps.length,
             itemBuilder: (context, index) {
-              var commentSnap = commentSnaps[index].data();
+              var commentSnap = commentSnaps[index];
 
               return CommentCard(
                 snap: commentSnap,

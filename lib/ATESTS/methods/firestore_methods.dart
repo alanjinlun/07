@@ -142,6 +142,7 @@ class FirestoreMethods {
         plus: [],
         neutral: [],
         minus: [],
+        allVotesUIDs: [],
         score: 0,
       );
 
@@ -207,12 +208,14 @@ class FirestoreMethods {
       if (plus.contains(uid)) {
         await _firestore.collection('posts').doc(postId).update({
           'plus': FieldValue.arrayRemove([uid]),
+          'allVotesUIDs': FieldValue.arrayRemove([uid]),
         });
       } else {
         await _firestore.collection('posts').doc(postId).update({
           'plus': FieldValue.arrayUnion([uid]),
           'neutral': FieldValue.arrayRemove([uid]),
           'minus': FieldValue.arrayRemove([uid]),
+          'allVotesUIDs': FieldValue.arrayUnion([uid]),
         });
       }
     } catch (e) {
@@ -227,12 +230,14 @@ class FirestoreMethods {
       if (neutral.contains(uid)) {
         await _firestore.collection('posts').doc(postId).update({
           'neutral': FieldValue.arrayRemove([uid]),
+          'allVotesUIDs': FieldValue.arrayRemove([uid]),
         });
       } else {
         await _firestore.collection('posts').doc(postId).update({
           'neutral': FieldValue.arrayUnion([uid]),
           'plus': FieldValue.arrayRemove([uid]),
           'minus': FieldValue.arrayRemove([uid]),
+          'allVotesUIDs': FieldValue.arrayUnion([uid]),
         });
       }
     } catch (e) {
@@ -251,12 +256,14 @@ class FirestoreMethods {
       if (minus.contains(uid)) {
         await _firestore.collection('posts').doc(postId).update({
           'minus': FieldValue.arrayRemove([uid]),
+          'allVotesUIDs': FieldValue.arrayRemove([uid]),
         });
       } else {
         await _firestore.collection('posts').doc(postId).update({
           'minus': FieldValue.arrayUnion([uid]),
           'plus': FieldValue.arrayRemove([uid]),
           'neutral': FieldValue.arrayRemove([uid]),
+          'allVotesUIDs': FieldValue.arrayUnion([uid]),
         });
       }
     } catch (e) {

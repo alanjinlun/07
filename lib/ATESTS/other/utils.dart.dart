@@ -112,7 +112,7 @@ Future<String?> usernameValidator({required String? username}) async {
   // Availability check
   var val = await FirebaseFirestore.instance
       .collection('users')
-      .where('username', isEqualTo: _text)
+      .where('usernameLower', isEqualTo: _text.toLowerCase())
       .get();
   if (val.docs.isNotEmpty) {
     return "This username is already taken.";

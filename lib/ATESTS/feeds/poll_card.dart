@@ -49,7 +49,6 @@ class _PollCardState extends State<PollCard> {
   @override
   void initState() {
     super.initState();
-    _poll = widget.poll;
     placement = '#${(widget.indexPlacement + 1).toString()}';
   }
 
@@ -144,433 +143,451 @@ class _PollCardState extends State<PollCard> {
 
   @override
   Widget build(BuildContext context) {
-    _poll = widget.poll;
     final User? user = Provider.of<UserProvider>(context).getUser;
-    print('_poll.endDate: ${_poll.endDate.runtimeType}');
+    // print('_poll.endDate: ${_poll.endDate.runtimeType}');
 
-    _isPollEnded = (_poll.endDate as Timestamp)
-        .toDate()
-        .difference(
-          DateTime.now(),
-        )
-        .isNegative;
+    return StreamBuilder(
+      stream: FirebaseFirestore.instance
+          .collection('polls')
+          .doc(widget.poll.pollId)
+          .snapshots(),
+      builder: (context,
+          AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
 
-    return Padding(
-      key: Key(_poll.pollId),
-      padding: const EdgeInsets.only(
-        top: 8,
-        right: 8,
-        left: 8,
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border:
-              Border.all(width: 0, color: Color.fromARGB(255, 167, 167, 167)),
-          color: Colors.white,
-        ),
-        padding: const EdgeInsets.only(left: 10, right: 10),
-        child: Column(
-          children: [
-            Container(
-              child: Padding(
-                padding: const EdgeInsets.only(
-                  top: 6,
-                  // bottom: 6,
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: Color.fromARGB(255, 227, 227, 227),
-                      backgroundImage: NetworkImage(_poll.profImage),
+        _poll = snapshot.data != null ? Poll.fromSnap(snapshot.data!) : _poll;
+
+        _isPollEnded = (_poll.endDate as Timestamp)
+          .toDate()
+          .difference(
+            DateTime.now(),
+          )
+          .isNegative;
+
+        return Padding(
+          key: Key(_poll.pollId),
+          padding: const EdgeInsets.only(
+            top: 8,
+            right: 8,
+            left: 8,
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border:
+                  Border.all(width: 0, color: Color.fromARGB(255, 167, 167, 167)),
+              color: Colors.white,
+            ),
+            padding: const EdgeInsets.only(left: 10, right: 10),
+            child: Column(
+              children: [
+                Container(
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                      top: 6,
+                      // bottom: 6,
                     ),
-                    SizedBox(width: 8),
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: Container(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                                child: Text(
-                              _poll.username,
-                              textAlign: TextAlign.start,
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                  letterSpacing: 0.5),
-                            )),
-                            SizedBox(height: 2),
-                            Text(
-                              DateFormat.yMMMd().format(
-                                _poll.datePublished.toDate(),
-                              ),
-                              style: const TextStyle(
-                                  fontSize: 12.5, color: Colors.grey),
-                            ),
-                          ],
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: Color.fromARGB(255, 227, 227, 227),
+                          backgroundImage: NetworkImage(_poll.profImage),
                         ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 4.0),
-                        child: Container(
-                          // color: Colors.brown,
-                          alignment: Alignment.centerRight,
-                          child: IconButton(
-                            onPressed: _poll.uid == user?.uid
-                                ? () => _deletePost(context)
-                                : () => _otherUsers(context),
-                            icon: const Icon(Icons.more_vert),
+                        SizedBox(width: 8),
+                        Align(
+                          alignment: Alignment.topRight,
+                          child: Container(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                    child: Text(
+                                  _poll.username,
+                                  textAlign: TextAlign.start,
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                      letterSpacing: 0.5),
+                                )),
+                                SizedBox(height: 2),
+                                Text(
+                                  DateFormat.yMMMd().format(
+                                    _poll.datePublished.toDate(),
+                                  ),
+                                  style: const TextStyle(
+                                      fontSize: 12.5, color: Colors.grey),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 4.0),
+                            child: Container(
+                              // color: Colors.brown,
+                              alignment: Alignment.centerRight,
+                              child: IconButton(
+                                onPressed: _poll.uid == user?.uid
+                                    ? () => _deletePost(context)
+                                    : () => _otherUsers(context),
+                                icon: const Icon(Icons.more_vert),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => FullMessagePoll(
+                              poll: _poll, indexPlacement: widget.indexPlacement)),
+                    );
+                  },
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      _poll.pollTitle,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => FullMessagePoll(
-                          poll: _poll, indexPlacement: widget.indexPlacement)),
-                );
-              },
-              child: Align(
-                alignment: Alignment.center,
-                child: Text(
-                  _poll.pollTitle,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              ),
-            ),
-            Stack(
-              children: [
-                PollView(
-                  pollId: _poll.pollId,
-                  pollEnded: _isPollEnded,
-                  hasVoted: _poll.allVotesUIDs.contains(user?.uid),
-                  userVotedOptionId: _getUserPollOptionId(user?.uid ?? ''),
-                  onVoted: (PollOption pollOption, int newTotalVotes) async {
-                    if (!_isPollEnded) {
-                      performLoggedUserAction(
-                          context: context,
-                          action: () async {
-                            await FirestoreMethods().poll(
-                              poll: _poll,
-                              uid: user?.uid ?? '',
-                              optionIndex: pollOption.id!,
-                            );
-                          });
-                    }
+                Stack(
+                  children: [
+                    PollView(
+                      pollId: _poll.pollId,
+                      pollEnded: _isPollEnded,
+                      hasVoted: _poll.allVotesUIDs.contains(user?.uid),
+                      userVotedOptionId: _getUserPollOptionId(user?.uid ?? ''),
+                      onVoted: (PollOption pollOption, int newTotalVotes) async {
+                        if (!_isPollEnded) {
+                          performLoggedUserAction(
+                              context: context,
+                              action: () async {
+                                await FirestoreMethods().poll(
+                                  poll: _poll,
+                                  uid: user?.uid ?? '',
+                                  optionIndex: pollOption.id!,
+                                );
+                              });
+                        }
 
-                    print('newTotalVotes: ${newTotalVotes}');
-                    print('Voted: ${pollOption.id}');
-                  },
-                  leadingVotedProgessColor: Colors.blue.shade200,
-                  pollOptionsSplashColor: Colors.white,
-                  votedProgressColor: Colors.blueGrey.withOpacity(0.3),
-                  votedBackgroundColor: Colors.grey.withOpacity(0.2),
-                  votedCheckmark: const Icon(
-                    Icons.check_circle_outline,
-                    color: Color.fromARGB(255, 17, 125, 21),
-                    size: 18,
-                  ),
-                  // pollTitle: Align(
-                  //   alignment: Alignment.center,
-                  //   child: Text(
-                  //     _poll.pollTitle,
-                  //     textAlign: TextAlign.center,
-                  //     style: const TextStyle(
-                  //       fontSize: 16,
-                  //       fontWeight: FontWeight.w500,
-                  //     ),
-                  //   ),
-                  // ),
-                  pollOptions: [
-                    PollOption(
-                      id: 1,
-                      title: Text(_poll.option1,
-                          style: TextStyle(
-                              fontSize: _poll.option1.length == 25
-                                  ? 10.7
-                                  : _poll.option1.length == 24
-                                      ? 11.2
-                                      : _poll.option1.length == 23
-                                          ? 11.7
-                                          : _poll.option1.length == 22
-                                              ? 12.2
-                                              : _poll.option1.length == 21
-                                                  ? 12.7
-                                                  : _poll.option1.length == 20
-                                                      ? 13.2
-                                                      : _poll.option1.length ==
-                                                              19
-                                                          ? 13.7
-                                                          : _poll.option1
-                                                                      .length ==
-                                                                  18
-                                                              ? 14.2
+                        print('newTotalVotes: ${newTotalVotes}');
+                        print('Voted: ${pollOption.id}');
+                      },
+                      leadingVotedProgessColor: Colors.blue.shade200,
+                      pollOptionsSplashColor: Colors.white,
+                      votedProgressColor: Colors.blueGrey.withOpacity(0.3),
+                      votedBackgroundColor: Colors.grey.withOpacity(0.2),
+                      votedCheckmark: const Icon(
+                        Icons.check_circle_outline,
+                        color: Color.fromARGB(255, 17, 125, 21),
+                        size: 18,
+                      ),
+                      // pollTitle: Align(
+                      //   alignment: Alignment.center,
+                      //   child: Text(
+                      //     _poll.pollTitle,
+                      //     textAlign: TextAlign.center,
+                      //     style: const TextStyle(
+                      //       fontSize: 16,
+                      //       fontWeight: FontWeight.w500,
+                      //     ),
+                      //   ),
+                      // ),
+                      pollOptions: [
+                        PollOption(
+                          id: 1,
+                          title: Text(_poll.option1,
+                              style: TextStyle(
+                                  fontSize: _poll.option1.length == 25
+                                      ? 10.7
+                                      : _poll.option1.length == 24
+                                          ? 11.2
+                                          : _poll.option1.length == 23
+                                              ? 11.7
+                                              : _poll.option1.length == 22
+                                                  ? 12.2
+                                                  : _poll.option1.length == 21
+                                                      ? 12.7
+                                                      : _poll.option1.length == 20
+                                                          ? 13.2
+                                                          : _poll.option1.length ==
+                                                                  19
+                                                              ? 13.7
                                                               : _poll.option1
                                                                           .length ==
-                                                                      17
+                                                                      18
                                                                   ? 14.2
                                                                   : _poll.option1
                                                                               .length ==
-                                                                          16
-                                                                      ? 15.2
-                                                                      : 16)),
-                      votes: _poll.vote1.length,
-                    ),
-                    PollOption(
-                      id: 2,
-                      title: Text(
-                        _poll.option2,
-                        style: _pollOptionTextStyle,
-                      ),
-                      votes: _poll.vote2.length,
-                    ),
-                    if (_poll.option3 != '')
-                      PollOption(
-                        id: 3,
-                        title: Text(
-                          _poll.option3,
-                          style: _pollOptionTextStyle,
+                                                                          17
+                                                                      ? 14.2
+                                                                      : _poll.option1
+                                                                                  .length ==
+                                                                              16
+                                                                          ? 15.2
+                                                                          : 16)),
+                          votes: _poll.vote1.length,
                         ),
-                        votes: _poll.vote3.length,
-                      ),
-                    if (_poll.option4 != '')
-                      PollOption(
-                        id: 4,
-                        title: Text(
-                          _poll.option4,
-                          style: _pollOptionTextStyle,
+                        PollOption(
+                          id: 2,
+                          title: Text(
+                            _poll.option2,
+                            style: _pollOptionTextStyle,
+                          ),
+                          votes: _poll.vote2.length,
                         ),
-                        votes: _poll.vote4.length,
-                      ),
-                    if (_poll.option5 != '')
-                      PollOption(
-                        id: 5,
-                        title: Text(
-                          _poll.option5,
-                          style: _pollOptionTextStyle,
+                        if (_poll.option3 != '')
+                          PollOption(
+                            id: 3,
+                            title: Text(
+                              _poll.option3,
+                              style: _pollOptionTextStyle,
+                            ),
+                            votes: _poll.vote3.length,
+                          ),
+                        if (_poll.option4 != '')
+                          PollOption(
+                            id: 4,
+                            title: Text(
+                              _poll.option4,
+                              style: _pollOptionTextStyle,
+                            ),
+                            votes: _poll.vote4.length,
+                          ),
+                        if (_poll.option5 != '')
+                          PollOption(
+                            id: 5,
+                            title: Text(
+                              _poll.option5,
+                              style: _pollOptionTextStyle,
+                            ),
+                            votes: _poll.vote5.length,
+                          ),
+                        if (_poll.option6 != '')
+                          PollOption(
+                            id: 6,
+                            title: Text(
+                              _poll.option6,
+                              style: _pollOptionTextStyle,
+                            ),
+                            votes: _poll.vote6.length,
+                          ),
+                        if (_poll.option7 != '')
+                          PollOption(
+                            id: 7,
+                            title: Text(
+                              _poll.option7,
+                              style: _pollOptionTextStyle,
+                            ),
+                            votes: _poll.vote7.length,
+                          ),
+                        if (_poll.option8 != '')
+                          PollOption(
+                            id: 8,
+                            title: Text(
+                              _poll.option8,
+                              style: _pollOptionTextStyle,
+                            ),
+                            votes: _poll.vote8.length,
+                          ),
+                        if (_poll.option9 != '')
+                          PollOption(
+                            id: 9,
+                            title: Text(
+                              _poll.option9,
+                              style: _pollOptionTextStyle,
+                            ),
+                            votes: _poll.vote9.length,
+                          ),
+                        if (_poll.option10 != '')
+                          PollOption(
+                            id: 10,
+                            title: Text(
+                              _poll.option10,
+                              style: _pollOptionTextStyle,
+                            ),
+                            votes: _poll.vote10.length,
+                          ),
+                      ],
+                      metaWidget: Container(
+                        height: 40,
+                        decoration: BoxDecoration(
+                          // color: Colors.orange,
+                          border: Border(
+                            top: BorderSide(
+                                width: 1,
+                                color: Color.fromARGB(255, 218, 216, 216)),
+                          ),
                         ),
-                        votes: _poll.vote5.length,
-                      ),
-                    if (_poll.option6 != '')
-                      PollOption(
-                        id: 6,
-                        title: Text(
-                          _poll.option6,
-                          style: _pollOptionTextStyle,
-                        ),
-                        votes: _poll.vote6.length,
-                      ),
-                    if (_poll.option7 != '')
-                      PollOption(
-                        id: 7,
-                        title: Text(
-                          _poll.option7,
-                          style: _pollOptionTextStyle,
-                        ),
-                        votes: _poll.vote7.length,
-                      ),
-                    if (_poll.option8 != '')
-                      PollOption(
-                        id: 8,
-                        title: Text(
-                          _poll.option8,
-                          style: _pollOptionTextStyle,
-                        ),
-                        votes: _poll.vote8.length,
-                      ),
-                    if (_poll.option9 != '')
-                      PollOption(
-                        id: 9,
-                        title: Text(
-                          _poll.option9,
-                          style: _pollOptionTextStyle,
-                        ),
-                        votes: _poll.vote9.length,
-                      ),
-                    if (_poll.option10 != '')
-                      PollOption(
-                        id: 10,
-                        title: Text(
-                          _poll.option10,
-                          style: _pollOptionTextStyle,
-                        ),
-                        votes: _poll.vote10.length,
-                      ),
-                  ],
-                  metaWidget: Container(
-                    height: 40,
-                    decoration: BoxDecoration(
-                      // color: Colors.orange,
-                      border: Border(
-                        top: BorderSide(
-                            width: 1,
-                            color: Color.fromARGB(255, 218, 216, 216)),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: Container(
-                        width: MediaQuery.of(context).size.width * 1,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(left: 0.0),
-                              child: Text(placement,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Container(
+                            width: MediaQuery.of(context).size.width * 1,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 0.0),
+                                  child: Text(placement,
+                                      style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 24,
+                                          fontStyle: FontStyle.italic,
+                                          fontWeight: FontWeight.bold)),
+                                ),
+                                const SizedBox(width: 0),
+                                const Text(
+                                  '•',
                                   style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 24,
-                                      fontStyle: FontStyle.italic,
-                                      fontWeight: FontWeight.bold)),
+                                    fontSize: 20,
+                                  ),
+                                ),
+                                const SizedBox(
+                                  width: 0,
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 0.0),
+                                  child: Text(
+                                    _poll.totalVotes == 1
+                                        ? '${_poll.totalVotes} Vote'
+                                        : '${_poll.totalVotes} Votes',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 00),
+                                const Text(
+                                  '•',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                  ),
+                                ),
+                                const SizedBox(
+                                  width: 00,
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 0.0),
+                                  child: Text(
+                                    _pollTimeLeftLabel(poll: _poll),
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 0),
-                            const Text(
-                              '•',
-                              style: TextStyle(
-                                fontSize: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned.fill(
+                        child: Visibility(
+                      visible: _isPollEnded,
+                      child: Container(
+                        color: Colors.cyanAccent.withOpacity(0.0),
+                      ),
+                    )),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: 8.0,
+                    top: 0,
+                  ),
+                  child: Container(
+                    width: 300,
+                    // decoration: BoxDecoration(
+                    //   border: Border(
+                    //     top: BorderSide(
+                    //         width: 1, color: Color.fromARGB(255, 218, 216, 216)),
+                    //   ),
+                    // ),
+                    // color: Colors.red,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: InkWell(
+                        onTap: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => FullMessagePoll(
+                                    poll: _poll, indexPlacement: widget.indexPlacement)),
+                          );
+                        },
+                        child: Container(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.comment_outlined,
+                                size: 15,
+                                color: Color.fromARGB(255, 132, 132, 132),
                               ),
-                            ),
-                            const SizedBox(
-                              width: 0,
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(right: 0.0),
-                              child: Text(
-                                _poll.totalVotes == 1
-                                    ? '${_poll.totalVotes} Vote'
-                                    : '${_poll.totalVotes} Votes',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
+                              Container(width: 8),
+                              Container(
+                                child: Center(
+                                  // child: Text(
+                                  //   '$commentLen Comments',
+                                  //   style: const TextStyle(
+                                  //       fontSize: 13,
+                                  //       color:
+                                  //           Color.fromARGB(255, 132, 132, 132),
+                                  //       letterSpacing: 0.8),
+                                  child: StreamBuilder(
+                                    stream: FirebaseFirestore.instance
+                                        .collection('polls')
+                                        .doc(_poll.pollId)
+                                        .collection('comments')
+                                        .snapshots(),
+                                    builder: (content, snapshot) {
+                                      print(
+                                          'BEFORE SNAPSHOT _poll.comments: ${widget.poll.comments}');
+
+                                      return Text(
+                                        '${(snapshot.data as dynamic)?.docs.length ?? 0} Comments',
+                                        style: const TextStyle(
+                                            fontSize: 13,
+                                            color:
+                                                Color.fromARGB(255, 132, 132, 132),
+                                            letterSpacing: 0.8),
+                                      );
+                                    },
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 00),
-                            const Text(
-                              '•',
-                              style: TextStyle(
-                                fontSize: 20,
-                              ),
-                            ),
-                            const SizedBox(
-                              width: 00,
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(right: 0.0),
-                              child: Text(
-                                _pollTimeLeftLabel(poll: _poll),
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-                Positioned.fill(
-                    child: Visibility(
-                  visible: _isPollEnded,
-                  child: Container(
-                    color: Colors.cyanAccent.withOpacity(0.0),
-                  ),
-                )),
               ],
             ),
-            Padding(
-              padding: const EdgeInsets.only(
-                bottom: 8.0,
-                top: 0,
-              ),
-              child: Container(
-                width: 300,
-                // decoration: BoxDecoration(
-                //   border: Border(
-                //     top: BorderSide(
-                //         width: 1, color: Color.fromARGB(255, 218, 216, 216)),
-                //   ),
-                // ),
-                // color: Colors.red,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: InkWell(
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => FullMessagePoll(
-                            poll: _poll, indexPlacement: widget.indexPlacement),
-                      ),
-                    ),
-                    child: Container(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.comment_outlined,
-                            size: 15,
-                            color: Color.fromARGB(255, 132, 132, 132),
-                          ),
-                          Container(width: 8),
-                          Container(
-                            child: Center(
-                              // child: Text(
-                              //   '$commentLen Comments',
-                              //   style: const TextStyle(
-                              //       fontSize: 13,
-                              //       color:
-                              //           Color.fromARGB(255, 132, 132, 132),
-                              //       letterSpacing: 0.8),
-                              child: StreamBuilder(
-                                stream: FirebaseFirestore.instance
-                                    .collection('polls')
-                                    .doc(_poll.pollId)
-                                    .collection('comments')
-                                    .snapshots(),
-                                builder: (content, snapshot) {
-                                  print(
-                                      'BEFORE SNAPSHOT _poll.comments: ${widget.poll.comments}');
-
-                                  return Text(
-                                    '${(snapshot.data as dynamic)?.docs.length ?? 0} Comments',
-                                    style: const TextStyle(
-                                        fontSize: 13,
-                                        color:
-                                            Color.fromARGB(255, 132, 132, 132),
-                                        letterSpacing: 0.8),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      }
     );
   }
 

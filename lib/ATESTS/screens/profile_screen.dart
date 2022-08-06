@@ -1,17 +1,22 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:aft/ATESTS/screens/profile_screen_edit.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:rxdart/streams.dart';
 // import 'package:provider/provider.dart';
 import '../feeds/message_card.dart';
 import '../feeds/poll_card.dart';
 import '../models/poll.dart';
 import '../models/post.dart';
+import '../models/postPoll.dart';
 import '../models/user.dart';
 import '../other/utils.dart.dart';
 import '../provider/user_provider.dart';
+import '../methods/auth_methods.dart';
 
 class Profile extends StatefulWidget {
   final Post post;
@@ -21,15 +26,103 @@ class Profile extends StatefulWidget {
   State<Profile> createState() => _ProfileState();
 }
 
-class _ProfileState extends State<Profile> {
+class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
   final _key1 = GlobalKey();
+  final AuthMethods _authMethods = AuthMethods();
   late Post _post;
   bool posts = true;
   bool comment = false;
   Uint8List? _image;
   int commentLen = 0;
+  int _selectedIndex = 0;
   bool selectFlag = false;
+  User? _userProfile;
+  final ScrollController _scrollController = ScrollController();
+  TabController? _tabController;
 
+  List<dynamic> postList = [];
+  List<dynamic> pollList = [];
+  StreamSubscription? loadDataStream;
+
+  initList(index) async {
+    if (loadDataStream != null) {
+      loadDataStream!.cancel();
+      pollList = [];
+      postList = [];
+    }
+    if (index == 0) {
+      loadDataStream = FirebaseFirestore.instance
+        .collection('posts')
+        .where('uid', isEqualTo: _post.uid)
+        .orderBy('score', descending: true)
+        .snapshots().listen((event) {
+          print("aaaaaaaaaaaaaaaaaaaaaaaa");
+          if (postList.isEmpty) {
+            event.docChanges.forEach((change) {
+              postList.add(change.doc.data()!);
+            });
+          } else {
+            for (var change in event.docChanges) {
+              switch (change.type) {
+                case DocumentChangeType.added:
+                  postList.add({
+                    ...change.doc.data()!,
+                  }); 
+                  break; 
+                case DocumentChangeType.modified:
+                  int i = postList.indexWhere((element) => element["postId"] == change.doc.data()!["postId"]);
+                  postList[i] = change.doc.data();
+                  break;
+                case DocumentChangeType.removed:
+                  postList.remove({
+                    ...change.doc.data()!
+                  }); 
+                  break;
+              }
+            }
+          }
+          setState(() {
+          });
+        });
+    } else if (index == 1) {
+      loadDataStream = FirebaseFirestore.instance
+        .collection('polls')
+        .where('uid', isEqualTo: _post.uid)
+        .orderBy('totalVotes', descending: true)
+        .snapshots().listen((event) {
+          print(event.docs.length);
+          print("bbbbbbbbbbbbbbbbbbbbbbbbb");
+          if (pollList.isEmpty) {
+            event.docChanges.forEach((change) {
+              pollList.add(change.doc.data()!);
+            });
+            setState(() {});
+          } else {
+            for (var change in event.docChanges) {
+              switch (change.type) {
+                case DocumentChangeType.added:
+                  pollList.add({
+                    ...change.doc.data()!,
+                  }); 
+                  break; 
+                case DocumentChangeType.modified:
+                  int i = pollList.indexWhere((element) => element["pollId"] == change.doc.data()!["pollId"]);
+                  pollList[i] = change.doc.data();
+                  break;
+                case DocumentChangeType.removed:
+                  pollList.remove({
+                    ...change.doc.data()!
+                  }); 
+                  break;
+              }
+            }
+            setState(() {});
+          }
+          setState(() {});
+        });
+    }
+  }
+  
   // void getComments() async {
   //   try {
   //     QuerySnapshot snap = await FirebaseFirestore.instance
@@ -51,7 +144,33 @@ class _ProfileState extends State<Profile> {
   void initState() {
     super.initState();
     _post = widget.post;
+    initTabController();
+    getUserDetails();
+    initList(0);
     // loadCountryFlagValue();
+  }
+
+  initTabController() {
+    if (_tabController != null) {
+      _tabController!.dispose();
+    }
+
+    _tabController = TabController(length: 3, vsync: this);
+    
+    _tabController?.addListener(() {
+      setState(() {
+        _selectedIndex = _tabController!.index;
+        _scrollController.jumpTo(_scrollController.position.minScrollExtent);
+        initList(_selectedIndex);
+      });
+    });
+  }
+
+  getUserDetails() async {
+    User userProfile = await _authMethods.getUserProfileDetails(_post.uid);
+    setState(() {
+      _userProfile = userProfile;
+    });
   }
 
   // void selectImage() async {
@@ -70,6 +189,7 @@ class _ProfileState extends State<Profile> {
   @override
   Widget build(BuildContext context) {
     final User? user = Provider.of<UserProvider>(context).getUser;
+
     return DefaultTabController(
       length: 3,
       child: Container(
@@ -79,6 +199,7 @@ class _ProfileState extends State<Profile> {
             // backgroundColor: Color.fromARGB(255, 245, 245, 245),
             backgroundColor: Color.fromARGB(255, 245, 245, 245),
             body: NestedScrollView(
+              controller: _scrollController,
               floatHeaderSlivers: true,
               headerSliverBuilder: (context, innerBoxIsScrolled) => [
                 Container(
@@ -112,6 +233,11 @@ class _ProfileState extends State<Profile> {
                       indicatorColor: Colors.black,
                       indicatorWeight: 5,
                       labelColor: Colors.black,
+                      // onTap: (index) {
+                      //   _scrollController.jumpTo(_scrollController.position.minScrollExtent);
+                      //   initList(index);
+                      // },
+                      controller: _tabController,
                     ),
 
                     // floating: true,
@@ -555,24 +681,9 @@ class _ProfileState extends State<Profile> {
                                                         bottom: 0,
                                                         right: 14,
                                                         child: Container(
-                                                          child: StreamBuilder(
-                                                            stream: FirebaseFirestore
-                                                                .instance
-                                                                .collection(
-                                                                    'users')
-                                                                .where('uid',
-                                                                    isEqualTo:
-                                                                        _post
-                                                                            .uid)
-                                                                .where(
-                                                                    'profileFlag')
-                                                                .snapshots(),
-                                                            builder: (content,
-                                                                snapshot) {
-                                                              return Row(
+                                                          child: Row(
                                                                   children: [
-                                                                    (snapshot.data as dynamic) !=
-                                                                            null
+                                                                    _userProfile != null && _userProfile?.profileFlag == "true"
                                                                         ? Container(
                                                                             width:
                                                                                 33,
@@ -581,9 +692,7 @@ class _ProfileState extends State<Profile> {
                                                                             child:
                                                                                 Image.asset('icons/flags/png/${user?.country}.png', package: 'country_icons'))
                                                                         : Row()
-                                                                  ]);
-                                                            },
-                                                          ),
+                                                                  ])
                                                         ),
                                                       ),
                                                       // Positioned(
@@ -659,29 +768,29 @@ class _ProfileState extends State<Profile> {
                                             child: SingleChildScrollView(
                                               child: Flexible(
                                                 child: Text(
-                                                  trimText(text: '${user?.bio}') ==
+                                                  trimText(text: (_userProfile != null ? _userProfile?.bio as String : "")) ==
                                                           ''
                                                       ? 'Empty Bio'
                                                       : trimText(
-                                                          text: '${user?.bio}'),
+                                                          text: _userProfile?.bio as String),
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
                                                       color: trimText(
                                                                   text:
-                                                                      '${user?.bio}') ==
+                                                                      '(_userProfile != null ? _userProfile?.bio as String : "")') ==
                                                               ''
                                                           ? Color.fromARGB(255,
                                                               126, 126, 126)
                                                           : Colors.black,
                                                       fontSize: trimText(
                                                                   text:
-                                                                      '${user?.bio}') ==
+                                                                      '(_userProfile != null ? _userProfile?.bio as String : "")') ==
                                                               ''
                                                           ? 12
                                                           : 13,
                                                       fontStyle: trimText(
                                                                   text:
-                                                                      '${user?.bio}') ==
+                                                                      '(_userProfile != null ? _userProfile?.bio as String : "")') ==
                                                               ''
                                                           ? FontStyle.italic
                                                           : FontStyle.normal),
@@ -723,68 +832,113 @@ class _ProfileState extends State<Profile> {
               ],
               // body: Text('1'),
               body: TabBarView(
+                controller: _tabController,
                 children: [
-                  StreamBuilder(
-                    stream: FirebaseFirestore.instance
-                        .collection('posts')
-                        // .doc()
-                        // .collection('comments')
-                        .where('uid', isEqualTo: _post.uid)
-                        .snapshots(),
-                    builder: (context,
-                        AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>>
-                            snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
+                  postList.isNotEmpty ? 
+                    ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: postList.length,
+                      itemBuilder: (context, index) {
+                        Post post = Post.fromMap(postList[index]);
+                        return PostCardTest(
+                          post: post,
+                          indexPlacement: index,
                         );
-                      }
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: snapshot.data!.docs.length,
-                        itemBuilder: (context, index) {
-                          Post post = Post.fromSnap(snapshot.data!.docs[index]);
-                          // DocumentSnapshot snap = (snapshot.data! as dynamic).docs[index];
+                      },
+                    )
+                  : Container(),
+                  pollList.isNotEmpty ? 
+                    ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: pollList.length,
+                      itemBuilder: (context, index) {
+                        Poll poll = Poll.fromMap(pollList[index]);
+                        return PollCard(
+                          poll: poll,
+                          indexPlacement: index,
+                        );
+                      },
+                    )
+                  : Container(),
+                  Builder(
+                    builder: (context) {
+                      return StreamBuilder(
+                        stream: CombineLatestStream.list([
+                          FirebaseFirestore.instance
+                            .collection('posts')
+                            // .doc()
+                            // .collection('comments')
+                            .where('allVotesUIDs', arrayContains: _post.uid)
+                            .snapshots(),
+                          FirebaseFirestore.instance
+                              .collection('polls')
+                              // .doc()
+                              // .collection('comments')
+                              .where('allVotesUIDs', arrayContains: _post.uid)
+                              .snapshots(),
+                        ]),
+                        builder: (context,
+                            AsyncSnapshot<List<QuerySnapshot<Map<String, dynamic>>>>
+                                snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          final data0 = snapshot.data![0];
+                          final data1 = snapshot.data![1];
 
-                          return PostCardTest(
-                            post: post,
-                            indexPlacement: index,
+                          List<PostPoll> postPoll = [];
+                          postPoll.clear();
+                          data0.docs.forEach((element) {
+                            Post post = Post.fromSnap(element);
+                            postPoll.add(PostPoll(
+                              datePublished: post.datePublished.toDate(), 
+                              category: "post", 
+                              item: element));
+                          });
+
+                          data1.docs.forEach((element) {
+                            Poll poll = Poll.fromSnap(element);
+                            postPoll.add(PostPoll(
+                              datePublished: poll.datePublished.toDate(), 
+                              category: "poll", 
+                              item: element));
+                          });
+
+                          postPoll.sort((a,b) {
+                            return b.datePublished.compareTo(a.datePublished);
+                          });
+
+                          postPoll.forEach((e) {
+                            print(e.datePublished.toString());
+                          });
+
+                          return ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: postPoll.length,
+                            itemBuilder: (context, index) {
+                              if (postPoll[index].category == "post") {
+                                Post post = Post.fromSnap(postPoll[index].item);
+                                return PostCardTest(
+                                  post: post,
+                                  indexPlacement: index,
+                                );
+                              } else {
+                                Poll poll = Poll.fromSnap(postPoll[index].item);
+                                return PollCard(
+                                  poll: poll,
+                                  indexPlacement: index,
+                                );
+                              }
+                            },
                           );
                         },
                       );
-                    },
+                    }
                   ),
-                  StreamBuilder(
-                    stream: FirebaseFirestore.instance
-                        .collection('polls')
-                        // .doc()
-                        // .collection('comments')
-                        .where('uid', isEqualTo: _post.uid)
-                        .snapshots(),
-                    builder: (context,
-                        AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>>
-                            snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
-                      }
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: snapshot.data!.docs.length,
-                        itemBuilder: (context, index) {
-                          Poll poll = Poll.fromSnap(snapshot.data!.docs[index]);
-                          // DocumentSnapshot snap = (snapshot.data! as dynamic).docs[index];
 
-                          return PollCard(
-                            poll: poll,
-                            indexPlacement: index,
-                          );
-                        },
-                      );
-                    },
-                  ),
-                  Text('list of all voted polls + messages'),
+                  // Text('list of all voted polls + messages'),
                 ],
               ),
             ),
