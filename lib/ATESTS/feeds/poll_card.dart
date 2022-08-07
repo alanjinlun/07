@@ -49,6 +49,7 @@ class _PollCardState extends State<PollCard> {
   @override
   void initState() {
     super.initState();
+    _poll = widget.poll;
     placement = '#${(widget.indexPlacement + 1).toString()}';
   }
 
@@ -146,27 +147,34 @@ class _PollCardState extends State<PollCard> {
     final User? user = Provider.of<UserProvider>(context).getUser;
     // print('_poll.endDate: ${_poll.endDate.runtimeType}');
 
-    return StreamBuilder(
-      stream: FirebaseFirestore.instance
-          .collection('polls')
-          .doc(widget.poll.pollId)
-          .snapshots(),
-      builder: (context,
-          AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
+    _isPollEnded = (_poll.endDate as Timestamp)
+        .toDate()
+        .difference(
+          DateTime.now(),
+        )
+        .isNegative;
 
-        _poll = snapshot.data != null ? Poll.fromSnap(snapshot.data!) : _poll;
+    // return StreamBuilder(
+    //   stream: FirebaseFirestore.instance
+    //       .collection('polls')
+    //       .doc(widget.poll.pollId)
+    //       .snapshots(),
+    //   builder: (context,
+    //       AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot) {
+    //     if (snapshot.connectionState == ConnectionState.waiting) {
+    //       return const Center(
+    //         child: CircularProgressIndicator(),
+    //       );
+    //     }
 
-        _isPollEnded = (_poll.endDate as Timestamp)
-          .toDate()
-          .difference(
-            DateTime.now(),
-          )
-          .isNegative;
+    //     _poll = snapshot.data != null ? Poll.fromSnap(snapshot.data!) : _poll;
+
+    //     _isPollEnded = (_poll.endDate as Timestamp)
+    //       .toDate()
+    //       .difference(
+    //         DateTime.now(),
+    //       )
+    //       .isNegative;
 
         return Padding(
           key: Key(_poll.pollId),
@@ -255,6 +263,15 @@ class _PollCardState extends State<PollCard> {
                           builder: (context) => FullMessagePoll(
                               poll: _poll, indexPlacement: widget.indexPlacement)),
                     );
+
+                    DocumentSnapshot snap =
+                      await FirebaseFirestore.instance.collection('polls')
+                        .doc(widget.poll.pollId).get();
+                    
+                    setState(() {
+                      _poll = Poll.fromSnap(snap);
+                      print(_poll.toJson());
+                    });
                   },
                   child: Align(
                     alignment: Alignment.center,
@@ -286,6 +303,14 @@ class _PollCardState extends State<PollCard> {
                                   optionIndex: pollOption.id!,
                                 );
                               });
+                          DocumentSnapshot snap =
+                            await FirebaseFirestore.instance.collection('polls')
+                              .doc(widget.poll.pollId).get();
+                          
+                          setState(() {
+                            _poll = Poll.fromSnap(snap);
+                            print(_poll.toJson());
+                          });
                         }
 
                         print('newTotalVotes: ${newTotalVotes}');
@@ -534,6 +559,15 @@ class _PollCardState extends State<PollCard> {
                                 builder: (context) => FullMessagePoll(
                                     poll: _poll, indexPlacement: widget.indexPlacement)),
                           );
+
+                          DocumentSnapshot snap =
+                            await FirebaseFirestore.instance.collection('polls')
+                              .doc(widget.poll.pollId).get();
+                          
+                          setState(() {
+                            _poll = Poll.fromSnap(snap);
+                            print(_poll.toJson());
+                          });
                         },
                         child: Container(
                           child: Row(
@@ -587,8 +621,8 @@ class _PollCardState extends State<PollCard> {
             ),
           ),
         );
-      }
-    );
+  //     }
+  //   );
   }
 
   int? _getUserPollOptionId(String uid) {

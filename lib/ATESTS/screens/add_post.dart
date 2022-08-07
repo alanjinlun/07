@@ -374,7 +374,7 @@ class _AddPostState extends State<AddPost> {
           children: <Widget>[
             Container(
               width: MediaQuery.of(context).size.width * 0.75,
-              // height: MediaQuery.of(context).size.height * 0.43,
+// height: MediaQuery.of(context).size.height * 0.43,
               height: 290,
               decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15), color: Colors.white),
@@ -450,9 +450,6 @@ class _AddPostState extends State<AddPost> {
                       color: Colors.white,
                       child: InkWell(
                         onTap: () async {
-                          Future.delayed(const Duration(milliseconds: 150), () {
-                            Navigator.of(context).pop();
-                          });
                           File file = await pickVideo(
                             ImageSource.gallery,
                           );
@@ -460,6 +457,9 @@ class _AddPostState extends State<AddPost> {
                             _file = (file as File).readAsBytesSync();
                             _videoFile = (file as File);
                             _isVideoFile = true;
+                          });
+                          Future.delayed(const Duration(milliseconds: 150), () {
+                            Navigator.of(context).pop();
                           });
                         },
                         child: Padding(

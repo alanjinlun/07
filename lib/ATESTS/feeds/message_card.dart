@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:video_player/video_player.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 import '../methods/firestore_methods.dart';
@@ -37,10 +38,13 @@ class PostCardTest extends StatefulWidget {
 class _PostCardTestState extends State<PostCardTest> {
   late Post _post;
   late YoutubePlayerController controller;
+  VideoPlayerController? videoController;
+  late Future<void> _initializeVideoPlayerFuture;
   bool isLikeAnimating = false;
   int commentLen = 0;
   String placement = '';
   var testt = 21100;
+  bool _onTouch = false;
 
   @override
   void initState() {
@@ -58,6 +62,13 @@ class _PostCardTestState extends State<PostCardTest> {
         useHybridComposition: true,
       ),
     );
+    if (_post.selected == 2) {
+      videoController = VideoPlayerController.network(_post.postUrl);
+      _initializeVideoPlayerFuture = videoController!.initialize().then((_) {
+        setState(() {});
+      });
+    }
+    
     controller.onEnterFullscreen = () {
       SystemChrome.setPreferredOrientations([
         DeviceOrientation.landscapeLeft,
@@ -276,6 +287,7 @@ class _PostCardTestState extends State<PostCardTest> {
   @override
   void dispose() {
     controller.close();
+    videoController!.dispose();
     super.dispose();
   }
 
@@ -564,7 +576,85 @@ class _PostCardTestState extends State<PostCardTest> {
                                     ),
                                   ),
                                 )
-                              : (_post.selected == 2 || _post.selected == 3)
+                              : _post.selected == 2
+                              ? FutureBuilder(
+                                future: _initializeVideoPlayerFuture,
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState == ConnectionState.done) {
+                                    return LayoutBuilder(
+                                      builder: (context, constraints) {
+                                        if (kIsWeb &&
+                                            constraints.maxWidth > 800) {
+                                          return Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              const Expanded(child: player),
+                                              const SizedBox(
+                                                width: 500,
+                                              ),
+                                            ],
+                                          );
+                                        }
+                                        return Container(
+                                          width: 324,
+                                          child: Stack(
+                                            children: [
+                                              player,
+                                              Positioned.fill(
+                                                child: VideoPlayer(videoController!),
+                                              ),
+                                              Positioned.fill(
+                                                child: Container(
+                                                  color: Colors.grey.withOpacity(0),
+                                                  alignment: Alignment.center,
+                                                  child: FlatButton(
+                                                    shape: CircleBorder(side: BorderSide(color: Colors.white)),
+                                                    child: Icon(videoController!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white,),
+                                                    onPressed: () {
+                                                      // _timer?.cancel();
+                                              
+                                                      // pause while video is playing, play while video is pausing
+                                                      setState(() {
+                                                        videoController!.value.isPlaying ?
+                                                        videoController!.pause() :
+                                                        videoController!.play();
+                                                      });
+                                              
+                                                      // Auto dismiss overlay after 1 second
+                                                      // _timer = Timer.periodic(Duration(milliseconds: 1000), (_) {
+                                                      //   setState(() {
+                                                      //     _onTouch = false;
+                                                      //   });
+                                                      // });
+                                                    },
+                                                  ),
+                                                ),
+                                              ),
+                                              Positioned.fill(
+                                                child: Container(
+                                                  alignment: Alignment.bottomCenter,
+                                                  child: VideoProgressIndicator(
+                                                    videoController!,
+                                                    allowScrubbing: true,
+                                                    padding: EdgeInsets.all(3),
+                                                    colors: VideoProgressColors(
+                                                        playedColor: Theme.of(context).primaryColor),
+                                                  ),
+                                                ),
+                                              ),
+
+                                            ],
+                                          ),
+                                        );
+                                      }
+                                    );
+                                  } else {
+                                    return Center(child: CircularProgressIndicator());
+                                  }
+                                },
+                              )
+                              : _post.selected == 3
                                   ? LayoutBuilder(
                                       builder: (context, constraints) {
                                       if (kIsWeb &&

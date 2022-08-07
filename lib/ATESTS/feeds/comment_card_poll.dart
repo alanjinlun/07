@@ -864,7 +864,7 @@ class _CommentCardPollState extends State<CommentCardPoll> {
   Future<void> _stopReplying() async {
     currentReplyCommentId = null;
     currentReplyFocusNode = FocusNode();
-    widget.parentSetState(null);
+    widget.parentSetState();
     await Future.delayed(
       const Duration(milliseconds: 200),
       () {
@@ -881,7 +881,7 @@ class _CommentCardPollState extends State<CommentCardPoll> {
   }) async {
     currentReplyCommentId = commentId;
     currentReplyFocusNode = FocusNode();
-    widget.parentSetState(null);
+    widget.parentSetState();
     await Future.delayed(
       const Duration(milliseconds: 200),
       () {

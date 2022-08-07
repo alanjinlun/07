@@ -165,7 +165,6 @@ class _FeedScreenState extends State<FeedScreen> {
             })); // we are adding to a local list when the element is added in firebase collection
             break; //the Post element we will send on pair with updatingStream, because a Post constructor makes a listener on a stream.
           case DocumentChangeType.modified:
-            print(change.doc.data());
             updatingStreamPoll.add(Poll.fromMap({
               ...change.doc.data()!
             })); // we are sending a modified object in the stream.
@@ -214,10 +213,10 @@ class _FeedScreenState extends State<FeedScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       messages = valuem.toString();
-      // if (valuem == "true") {
+      if (valuem == "true") {
         initList();
         initPollList();
-      // }
+      }
       prefs.setString('selected_radio4', messages);
     });
   }

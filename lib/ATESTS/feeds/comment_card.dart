@@ -151,9 +151,6 @@ class _CommentCardState extends State<CommentCard> {
                   showSnackBar(
                       widget.isReply ? 'Reply Deleted' : 'Comment Deleted',
                       context);
-                  if (!widget.isReply) {
-                    widget.parentSetState(true);
-                  }
                 },
               ),
             ],
@@ -809,7 +806,7 @@ class _CommentCardState extends State<CommentCard> {
   Future<void> _stopReplying() async {
     currentReplyCommentId = null;
     currentReplyFocusNode = FocusNode();
-    widget.parentSetState(null);
+    widget.parentSetState();
     await Future.delayed(
       const Duration(milliseconds: 200),
       () {
@@ -826,7 +823,7 @@ class _CommentCardState extends State<CommentCard> {
   }) async {
     currentReplyCommentId = commentId;
     currentReplyFocusNode = FocusNode();
-    widget.parentSetState(null);
+    widget.parentSetState();
     await Future.delayed(
       const Duration(milliseconds: 200),
       () {

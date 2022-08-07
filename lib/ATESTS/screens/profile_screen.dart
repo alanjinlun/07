@@ -56,7 +56,6 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
         .where('uid', isEqualTo: _post.uid)
         .orderBy('score', descending: true)
         .snapshots().listen((event) {
-          print("aaaaaaaaaaaaaaaaaaaaaaaa");
           if (postList.isEmpty) {
             event.docChanges.forEach((change) {
               postList.add(change.doc.data()!);
@@ -91,7 +90,6 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
         .orderBy('totalVotes', descending: true)
         .snapshots().listen((event) {
           print(event.docs.length);
-          print("bbbbbbbbbbbbbbbbbbbbbbbbb");
           if (pollList.isEmpty) {
             event.docChanges.forEach((change) {
               pollList.add(change.doc.data()!);
@@ -188,7 +186,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final User? user = Provider.of<UserProvider>(context).getUser;
+    User? user = Provider.of<UserProvider>(context).getUser;
 
     return DefaultTabController(
       length: 3,
@@ -353,14 +351,15 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                                                 left: 0,
                                                                 bottom: 10),
                                                         child: InkWell(
-                                                          onTap: () {
-                                                            Navigator.push(
+                                                          onTap: () async {
+                                                            final res = await Navigator.push(
                                                               context,
                                                               MaterialPageRoute(
                                                                   builder:
                                                                       (context) =>
                                                                           const EditProfile()),
                                                             );
+                                                            getUserDetails();
                                                           },
                                                           child: Container(
                                                             height: 32,
