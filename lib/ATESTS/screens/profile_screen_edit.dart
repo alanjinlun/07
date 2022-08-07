@@ -212,6 +212,9 @@ class _EditProfileState extends State<EditProfile> {
                                             onChanged: (valueFlag) {
                                               selectFlag == false
                                                   ? setState(() {
+                                                      setState(() {
+                                                        isLoading = true;
+                                                      });
                                                       setValueFlag(true);
                                                       selectFlag = true;
                                                       valueFlag = true;
@@ -226,6 +229,9 @@ class _EditProfileState extends State<EditProfile> {
                                                                 listen: false);
                                                         await userProvider
                                                             .refreshUser();
+                                                        setState(() {
+                                                          isLoading = false;
+                                                        });
                                                       });
                                                     })
                                                   : selectFlag == true
@@ -235,6 +241,9 @@ class _EditProfileState extends State<EditProfile> {
 
                                                           valueFlag = false;
                                                           setState(() async {
+                                                            setState(() {
+                                                              isLoading = true;
+                                                            });
                                                             await AuthMethods()
                                                                 .changeProfileFlag(
                                                                     profileFlag:
@@ -248,6 +257,9 @@ class _EditProfileState extends State<EditProfile> {
                                                                         false);
                                                             await userProvider
                                                                 .refreshUser();
+                                                            setState(() {
+                                                              isLoading = false;
+                                                            });
                                                           });
                                                         })
                                                       : null;
