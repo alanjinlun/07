@@ -709,7 +709,7 @@ class _CommentCardState extends State<CommentCard> {
                               action: () async {
                                 await FirestoreMethods().postReply(
                                     widget.postId,
-                                    widget.snap['commentId'],
+                                    widget.isReply? widget.parentCommentId : widget.snap['commentId'],
                                     _replyController.text,
                                     user?.uid ?? '',
                                     user?.username ?? '',
